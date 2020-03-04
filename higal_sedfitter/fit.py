@@ -16,12 +16,12 @@ __all__ = ['PixelFitter',
            'fit_modified_blackbody_to_imagecube']
 
 class PixelFitter(object):
-    
+
     def __init__(self, tguess=20, bguess=1.75, nguess=1e22,
                  trange=[2.73,50], brange=[1,3], nrange=[1e20,1e25],
                  tfixed=False, bfixed=False, nfixed=False):
         """
-        Initialize an SED fitter instance with a set of guesses.  
+        Initialize an SED fitter instance with a set of guesses.
         The input parameters follow a template that is the same for each
         of temperature, beta, and column.
 
@@ -39,19 +39,22 @@ class PixelFitter(object):
         fixed : bool
             Is the parameter fixed at the guessed value?
         """
-        
+
         import lmfit
         from collections import OrderedDict
 
-        parlist = [(n,lmfit.Parameter(name=n,value=x))
-                   for n,x in zip(('T','beta','N'),
-                                  (tguess, bguess, nguess))]
+        #parlist = [(n,lmfit.Parameter(name=n,value=x))
+        #           for n,x in zip(('T','beta','N'),
+        #                           (tguess, bguess, nguess))]
 
         parameters = lmfit.Parameters()
-        parameters.update(OrderedDict(parlist))
-        assert parameters.keys()[0] == 'T'
-        assert parameters.keys()[1] == 'beta'
-        assert parameters.keys()[2] == 'N'
+        #parameters.update(OrderedDict(parlist))
+        #assert parameters.keys()[0] == 'T'
+        #assert parameters.keys()[1] == 'beta'
+        #assert parameters.keys()[2] == 'N'
+        parameters.add('T', value=tguess, min=-np.inf, max=np.inf)
+        parameters.add('beta', value=bguess, min=-np.inf, max=np.inf)
+        parameters.add('N', value=nguess, min=-np.inf, max=np.inf)
 
         parameters['beta'].vary = not bfixed
         parameters['beta'].min = brange[0]
@@ -107,7 +110,7 @@ class PixelFitter(object):
 
         Returns
         -------
-        The SED integrated in units of 
+        The SED integrated in units of
         ``bbunit = u.erg/u.s/u.cm**2``
         """
         integrator = dust_emissivity.blackbody.integrate_sed
@@ -189,7 +192,7 @@ def fit_modified_blackbody_to_imagecube(image_cube,
                                         integral=False, out_prefix="",):
     """
     Fit a modified blackbody to each pixel in an image cube.  Writes the
-    results to files of the form ``{out_prefix}+T.fits``, ``{out_prefix}+beta.fits``, 
+    results to files of the form ``{out_prefix}+T.fits``, ``{out_prefix}+beta.fits``,
     ``{out_prefix}+N.fits``,  and optionally ``{out_prefix}+integral.fits``.
 
     Parameters
@@ -218,7 +221,7 @@ def fit_modified_blackbody_to_imagecube(image_cube,
         a factor of 2
     out_prefix : str
         A prefix to prepend to the output file names
-        
+
     Returns
     -------
     t_hdu,b_hdu,n_hdu : :class:`~astropy.io.fits.HDUList`
@@ -260,8 +263,7 @@ def fit_modified_blackbody_to_imagecube(image_cube,
             error_spec = image_cube[:,x,y]*error_scaling
         vals,errs = pixelfitter(frequencies,
                                 u.Quantity(image_cube[:, x, y], u.MJy),
-                                u.Quantity(error_spec, u.MJy),
-                               )
+                                u.Quantity(error_spec, u.MJy))
         timg[x,y] = vals[0]
         bimg[x,y] = vals[1]
         nimg[x,y] = vals[2]
@@ -322,4 +324,3 @@ def fit_modified_blackbody_to_imagecube(image_cube,
         return t_hdu,b_hdu,n_hdu,int_hdu
     else:
         return t_hdu,b_hdu,n_hdu
-
